@@ -25,7 +25,7 @@
     // Create and inject CSS
     let styleElement = null;
 
-    function updateMinFontSize() {
+    function updateMinFontSize(showNotif = true) {
         // Remove existing style if present
         if (styleElement) {
             styleElement.remove();
@@ -55,8 +55,10 @@
         // Save the setting
         GM_setValue(`${STORAGE_KEY}_${currentDomain}`, minFontSize);
 
-        // Show notification
-        showNotification(`Minimum font size: ${minFontSize}px`);
+        // Show notification only when requested
+        if (showNotif) {
+            showNotification(`Minimum font size: ${minFontSize}px`);
+        }
     }
 
     // Track current notification to prevent multiple notifications
@@ -160,11 +162,11 @@
         showNotification(`Current minimum font size: ${minFontSize}px for ${currentDomain}`);
     });
 
-    // Apply initial font size when page loads
+    // Apply initial font size when page loads (without notification)
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', updateMinFontSize);
+        document.addEventListener('DOMContentLoaded', () => updateMinFontSize(false));
     } else {
-        updateMinFontSize();
+        updateMinFontSize(false);
     }
 
     // Reapply when new content is added (for dynamic pages)
@@ -185,9 +187,9 @@
         });
 
         if (shouldUpdate) {
-            // Debounce the update
+            // Debounce the update (without notification)
             clearTimeout(observer.timeoutId);
-            observer.timeoutId = setTimeout(updateMinFontSize, 500);
+            observer.timeoutId = setTimeout(() => updateMinFontSize(false), 500);
         }
     });
 
