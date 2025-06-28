@@ -79,7 +79,7 @@
 
         document.body.appendChild(notification);
 
-        // Remove after 2 seconds
+        // Remove after 2.5 seconds
         setTimeout(() => {
             notification.style.opacity = '0';
             setTimeout(() => {
@@ -87,7 +87,7 @@
                     notification.parentNode.removeChild(notification);
                 }
             }, 300);
-        }, 2000);
+        }, 2500);
     }
 
     // Keyboard shortcuts
@@ -176,12 +176,4 @@
         subtree: true
     });
 
-})();// ==UserScript==
-// @name        New script claude.ai
-// @namespace   Violentmonkey Scripts
-// @match       https://claude.ai/chat/ee77fafb-2cc9-41f4-9613-a15a7563b60f*
-// @grant       none
-// @version     1.0
-// @author      -
-// @description 6/28/2025, 11:12:10 AM
-// ==/UserScript==
+})();
