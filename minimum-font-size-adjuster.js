@@ -59,7 +59,21 @@
         showNotification(`Minimum font size: ${minFontSize}px`);
     }
 
+    // Track current notification to prevent multiple notifications
+    let currentNotification = null;
+
     function showNotification(message) {
+        // Remove any existing notification first
+        if (currentNotification && currentNotification.parentNode) {
+            currentNotification.parentNode.removeChild(currentNotification);
+            currentNotification = null;
+        }
+
+        // Ensure document.body exists
+        if (!document.body) {
+            return;
+        }
+
         // Create notification element
         const notification = document.createElement('div');
         notification.textContent = message;
@@ -78,15 +92,21 @@
         `;
 
         document.body.appendChild(notification);
+        currentNotification = notification;
 
         // Remove after 2.5 seconds
         setTimeout(() => {
-            notification.style.opacity = '0';
-            setTimeout(() => {
-                if (notification.parentNode) {
-                    notification.parentNode.removeChild(notification);
-                }
-            }, 300);
+            if (notification && notification.parentNode) {
+                notification.style.opacity = '0';
+                setTimeout(() => {
+                    if (notification && notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                        if (currentNotification === notification) {
+                            currentNotification = null;
+                        }
+                    }
+                }, 300);
+            }
         }, 2500);
     }
 
