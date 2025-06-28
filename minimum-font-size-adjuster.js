@@ -25,7 +25,7 @@
     // Create and inject CSS
     let styleElement = null;
 
-    function updateMinFontSize(showNotif = true) {
+    function updateMinFontSize() {
         // Remove existing style if present
         if (styleElement) {
             styleElement.remove();
@@ -54,63 +54,9 @@
 
         // Save the setting
         GM_setValue(`${STORAGE_KEY}_${currentDomain}`, minFontSize);
-
-        // Show notification only when requested
-        if (showNotif) {
-            showNotification(`Minimum font size: ${minFontSize}px`);
-        }
     }
 
-    // Track current notification to prevent multiple notifications
-    let currentNotification = null;
 
-    function showNotification(message) {
-        // Remove any existing notification first
-        if (currentNotification && currentNotification.parentNode) {
-            currentNotification.parentNode.removeChild(currentNotification);
-            currentNotification = null;
-        }
-
-        // Ensure document.body exists
-        if (!document.body) {
-            return;
-        }
-
-        // Create notification element
-        const notification = document.createElement('div');
-        notification.textContent = message;
-        notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #333;
-            color: white;
-            padding: 10px 15px;
-            border-radius: 5px;
-            font-size: 14px !important;
-            z-index: 10000;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-            transition: opacity 0.3s ease;
-        `;
-
-        document.body.appendChild(notification);
-        currentNotification = notification;
-
-        // Remove after 2.5 seconds
-        setTimeout(() => {
-            if (notification && notification.parentNode) {
-                notification.style.opacity = '0';
-                setTimeout(() => {
-                    if (notification && notification.parentNode) {
-                        notification.parentNode.removeChild(notification);
-                        if (currentNotification === notification) {
-                            currentNotification = null;
-                        }
-                    }
-                }, 300);
-            }
-        }, 2500);
-    }
 
     // Keyboard shortcuts
     document.addEventListener('keydown', function(e) {
@@ -159,14 +105,14 @@
     });
 
     GM_registerMenuCommand(`Current: ${minFontSize}px`, () => {
-        showNotification(`Current minimum font size: ${minFontSize}px for ${currentDomain}`);
+        console.log(`Current minimum font size: ${minFontSize}px for ${currentDomain}`);
     });
 
-    // Apply initial font size when page loads (without notification)
+    // Apply initial font size when page loads
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => updateMinFontSize(false));
+        document.addEventListener('DOMContentLoaded', updateMinFontSize);
     } else {
-        updateMinFontSize(false);
+        updateMinFontSize();
     }
 
     // Reapply when new content is added (for dynamic pages)
@@ -187,9 +133,9 @@
         });
 
         if (shouldUpdate) {
-            // Debounce the update (without notification)
+            // Debounce the update
             clearTimeout(observer.timeoutId);
-            observer.timeoutId = setTimeout(() => updateMinFontSize(false), 500);
+            observer.timeoutId = setTimeout(updateMinFontSize, 500);
         }
     });
 
