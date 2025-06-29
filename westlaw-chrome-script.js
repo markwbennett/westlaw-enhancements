@@ -5,10 +5,15 @@
 // @grant       GM_setValue
 // @grant       GM_getValue
 // @grant       GM_registerMenuCommand
-// @version     1.0
+// @version     1.1
 // @author      -
 // @description Combined Westlaw enhancements: font size, margins, navigation shortcuts, and sidebar toggle
 // ==/UserScript==
+
+/* 
+ * Cache Buster: 2024-12-19-v1.1-simplified-margins-with-focus-mode
+ * Last updated: Added version display, simplified margins, line height controls, focus mode
+ */
 
 (function() {
     'use strict';
@@ -789,6 +794,11 @@
     // MENU COMMANDS REGISTRATION
     // ===========================================
     function registerMenuCommands() {
+        // Version info
+        GM_registerMenuCommand('📋 Westlaw Enhancements v1.1', () => {
+            showNotification('Westlaw Combined Enhancements v1.1 - All features loaded', 'font');
+        });
+
         // Font size commands
         GM_registerMenuCommand('⬆️ Increase Font Size', () => {
             divFontSize = Math.min(divFontSize + 1, 36);
@@ -927,6 +937,6 @@
         });
     }
 
-    console.log('Westlaw Combined Enhancements loaded. Navigation: N/Right (next), Left (prev), Up (top), Enter (copy). Other controls via menu.');
+    console.log(`Westlaw Combined Enhancements v1.1 loaded at ${new Date().toLocaleTimeString()}. Navigation: N/Right (next), Left (prev), Up (top), Enter (copy). Other controls via menu.`);
 
 })();
