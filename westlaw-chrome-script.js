@@ -17,7 +17,9 @@
     // FONT SIZE ADJUSTER MODULE
     // ===========================================
     const FONT_STORAGE_KEY = 'westlawDivFontSize';
+    const LINE_HEIGHT_STORAGE_KEY = 'westlawLineHeight';
     const DEFAULT_FONT_SIZE = 18;
+    const DEFAULT_LINE_HEIGHT = 1.5;
     const currentDomain = window.location.hostname;
 
     const TARGET_SELECTORS = [
@@ -31,6 +33,7 @@
     ];
 
     let divFontSize = GM_getValue(`${FONT_STORAGE_KEY}_${currentDomain}`, DEFAULT_FONT_SIZE);
+    let lineHeight = GM_getValue(`${LINE_HEIGHT_STORAGE_KEY}_${currentDomain}`, DEFAULT_LINE_HEIGHT);
     let divStyleElement = null;
 
     function updateDivFontSize() {
@@ -45,10 +48,12 @@
             return `
                 ${selector} {
                     font-size: ${divFontSize}px !important;
+                    line-height: ${lineHeight} !important;
                 }
 
                 ${selector} * {
                     font-size: inherit !important;
+                    line-height: inherit !important;
                 }
 
                 ${selector} .co_footnoteReference,
@@ -82,7 +87,13 @@
         (document.head || document.documentElement).appendChild(divStyleElement);
 
         GM_setValue(`${FONT_STORAGE_KEY}_${currentDomain}`, divFontSize);
-        showNotification(`Font size: ${divFontSize}px`, 'font');
+        GM_setValue(`${LINE_HEIGHT_STORAGE_KEY}_${currentDomain}`, lineHeight);
+        showNotification(`Font: ${divFontSize}px | Line height: ${lineHeight}`, 'font');
+    }
+
+    function updateLineHeight() {
+        lineHeight = Math.max(1.0, Math.min(3.0, parseFloat(lineHeight.toFixed(1))));
+        updateDivFontSize(); // This will apply both font size and line height
     }
 
     // ===========================================
@@ -689,7 +700,7 @@
     }
 
     // ===========================================
-    // NAVIGATION HELPER FUNCTIONS (Menu-only)
+    // NAVIGATION HELPER FUNCTIONS
     // ===========================================
     function navigateNext() {
         const button = document.getElementById('co_documentFooterSearchTermNavigationNext');
@@ -731,6 +742,50 @@
     }
 
     // ===========================================
+    // NAVIGATION KEYBOARD SHORTCUTS
+    // ===========================================
+    document.addEventListener('keydown', function(e) {
+        if (document.activeElement.tagName !== 'INPUT' &&
+            document.activeElement.tagName !== 'TEXTAREA' &&
+            !document.activeElement.isContentEditable) {
+
+            // Navigation shortcuts only
+            if ((e.key === 'n' || e.key === 'ArrowRight') && !e.ctrlKey && !e.altKey && !e.shiftKey) {
+                const button = document.getElementById('co_documentFooterSearchTermNavigationNext');
+                if (button && button.getAttribute('aria-disabled') !== 'true') {
+                    button.click();
+                    e.preventDefault();
+                }
+            }
+
+            if (e.key === 'ArrowLeft' && !e.ctrlKey && !e.altKey && !e.shiftKey) {
+                const button = document.getElementById('co_documentFooterSearchTermNavigationPrevious');
+                if (button && button.getAttribute('aria-disabled') !== 'true') {
+                    button.click();
+                    e.preventDefault();
+                }
+            }
+
+            if (e.key === 'ArrowUp' && !e.ctrlKey && !e.altKey && !e.shiftKey) {
+                window.scrollTo(0, 0);
+                e.preventDefault();
+            }
+
+            if (e.key === 'Enter' && !e.ctrlKey && !e.altKey && !e.shiftKey) {
+                const button = document.querySelector('button.co_copyWithRefLabel');
+                if (button) {
+                    button.click();
+                    e.preventDefault();
+
+                    setTimeout(() => {
+                        switchToNotesFile();
+                    }, 500);
+                }
+            }
+        }
+    });
+
+    // ===========================================
     // MENU COMMANDS REGISTRATION
     // ===========================================
     function registerMenuCommands() {
@@ -750,28 +805,34 @@
             updateDivFontSize();
         });
 
+        // Line height commands
+        GM_registerMenuCommand('📏 Increase Line Height', () => {
+            lineHeight += 0.1;
+            updateLineHeight();
+        });
+
+        GM_registerMenuCommand('📐 Decrease Line Height', () => {
+            lineHeight -= 0.1;
+            updateLineHeight();
+        });
+
+        GM_registerMenuCommand('🔄 Reset Line Height', () => {
+            lineHeight = DEFAULT_LINE_HEIGHT;
+            updateLineHeight();
+        });
+
         // Margin commands
-        GM_registerMenuCommand('⬅️ Increase Left Margin', () => {
+        GM_registerMenuCommand('➕ Increase Margins', () => {
             leftMargin = Math.min(leftMargin + ADJUSTMENT_STEP, 300);
-            updateMargins();
-        });
-
-        GM_registerMenuCommand('➡️ Decrease Left Margin', () => {
-            leftMargin = Math.max(leftMargin - ADJUSTMENT_STEP, 0);
-            updateMargins();
-        });
-
-        GM_registerMenuCommand('⬆️ Increase Right Margin', () => {
             rightMargin = Math.min(rightMargin + ADJUSTMENT_STEP, 300);
             updateMargins();
         });
 
-        GM_registerMenuCommand('⬇️ Decrease Right Margin', () => {
+        GM_registerMenuCommand('➖ Decrease Margins', () => {
+            leftMargin = Math.max(leftMargin - ADJUSTMENT_STEP, 0);
             rightMargin = Math.max(rightMargin - ADJUSTMENT_STEP, 0);
             updateMargins();
         });
-
-        GM_registerMenuCommand('🔄 Make Margins Symmetrical', setSymmetricalMargins);
 
         GM_registerMenuCommand('🔧 Reset Margins', () => {
             leftMargin = DEFAULT_LEFT_MARGIN;
@@ -792,8 +853,8 @@
         GM_registerMenuCommand('📋 Copy & Switch to Notes', copyAndSwitchToNotes);
 
         // Status commands
-        GM_registerMenuCommand(`📏 Font: ${divFontSize}px | Margins: L${leftMargin}px R${rightMargin}px | Sidebar: ${sidebarHidden ? 'Hidden' : 'Visible'} | Focus: ${focusModeEnabled ? 'ON' : 'OFF'}`, () => {
-            showNotification(`Font: ${divFontSize}px | Margins: L${leftMargin}px R${rightMargin}px | Sidebar: ${sidebarHidden ? 'Hidden' : 'Visible'} | Focus: ${focusModeEnabled ? 'ON' : 'OFF'}`, 'font');
+        GM_registerMenuCommand(`📏 Font: ${divFontSize}px | Line: ${lineHeight} | Margins: L${leftMargin}px R${rightMargin}px | Sidebar: ${sidebarHidden ? 'Hidden' : 'Visible'} | Focus: ${focusModeEnabled ? 'ON' : 'OFF'}`, () => {
+            showNotification(`Font: ${divFontSize}px | Line: ${lineHeight} | Margins: L${leftMargin}px R${rightMargin}px | Sidebar: ${sidebarHidden ? 'Hidden' : 'Visible'} | Focus: ${focusModeEnabled ? 'ON' : 'OFF'}`, 'font');
         });
     }
 
@@ -866,6 +927,6 @@
         });
     }
 
-    console.log('Westlaw Combined Enhancements loaded. All controls available via userscript menu (no keyboard shortcuts to avoid conflicts).');
+    console.log('Westlaw Combined Enhancements loaded. Navigation: N/Right (next), Left (prev), Up (top), Enter (copy). Other controls via menu.');
 
 })();
