@@ -811,63 +811,65 @@
     });
 
     // ===========================================
-    // MENU COMMANDS
+    // MENU COMMANDS REGISTRATION
     // ===========================================
-    // Font size commands
-    GM_registerMenuCommand('⬆️ Increase Font Size', () => {
-        divFontSize = Math.min(divFontSize + 1, 36);
-        updateDivFontSize();
-    });
+    function registerMenuCommands() {
+        // Font size commands
+        GM_registerMenuCommand('⬆️ Increase Font Size', () => {
+            divFontSize = Math.min(divFontSize + 1, 36);
+            updateDivFontSize();
+        });
 
-    GM_registerMenuCommand('⬇️ Decrease Font Size', () => {
-        divFontSize = Math.max(divFontSize - 1, 10);
-        updateDivFontSize();
-    });
+        GM_registerMenuCommand('⬇️ Decrease Font Size', () => {
+            divFontSize = Math.max(divFontSize - 1, 10);
+            updateDivFontSize();
+        });
 
-    GM_registerMenuCommand('🔄 Reset Font Size', () => {
-        divFontSize = DEFAULT_FONT_SIZE;
-        updateDivFontSize();
-    });
+        GM_registerMenuCommand('🔄 Reset Font Size', () => {
+            divFontSize = DEFAULT_FONT_SIZE;
+            updateDivFontSize();
+        });
 
-    // Margin commands
-    GM_registerMenuCommand('⬅️ Increase Left Margin', () => {
-        leftMargin = Math.min(leftMargin + ADJUSTMENT_STEP, 300);
-        updateMargins();
-    });
+        // Margin commands
+        GM_registerMenuCommand('⬅️ Increase Left Margin', () => {
+            leftMargin = Math.min(leftMargin + ADJUSTMENT_STEP, 300);
+            updateMargins();
+        });
 
-    GM_registerMenuCommand('➡️ Decrease Left Margin', () => {
-        leftMargin = Math.max(leftMargin - ADJUSTMENT_STEP, 0);
-        updateMargins();
-    });
+        GM_registerMenuCommand('➡️ Decrease Left Margin', () => {
+            leftMargin = Math.max(leftMargin - ADJUSTMENT_STEP, 0);
+            updateMargins();
+        });
 
-    GM_registerMenuCommand('⬆️ Increase Right Margin', () => {
-        rightMargin = Math.min(rightMargin + ADJUSTMENT_STEP, 300);
-        updateMargins();
-    });
+        GM_registerMenuCommand('⬆️ Increase Right Margin', () => {
+            rightMargin = Math.min(rightMargin + ADJUSTMENT_STEP, 300);
+            updateMargins();
+        });
 
-    GM_registerMenuCommand('⬇️ Decrease Right Margin', () => {
-        rightMargin = Math.max(rightMargin - ADJUSTMENT_STEP, 0);
-        updateMargins();
-    });
+        GM_registerMenuCommand('⬇️ Decrease Right Margin', () => {
+            rightMargin = Math.max(rightMargin - ADJUSTMENT_STEP, 0);
+            updateMargins();
+        });
 
-    GM_registerMenuCommand('🔄 Make Margins Symmetrical', setSymmetricalMargins);
+        GM_registerMenuCommand('🔄 Make Margins Symmetrical', setSymmetricalMargins);
 
-    GM_registerMenuCommand('🔧 Reset Margins', () => {
-        leftMargin = DEFAULT_LEFT_MARGIN;
-        rightMargin = DEFAULT_RIGHT_MARGIN;
-        updateMargins();
-    });
+        GM_registerMenuCommand('🔧 Reset Margins', () => {
+            leftMargin = DEFAULT_LEFT_MARGIN;
+            rightMargin = DEFAULT_RIGHT_MARGIN;
+            updateMargins();
+        });
 
-    // Sidebar command
-    GM_registerMenuCommand(sidebarHidden ? '👁️ Show Sidebar' : '🙈 Hide Sidebar', toggleSidebar);
+        // Sidebar command
+        GM_registerMenuCommand(sidebarHidden ? '👁️ Show Sidebar' : '🙈 Hide Sidebar', toggleSidebar);
 
-    // Focus mode command
-    GM_registerMenuCommand(focusModeEnabled ? '🎯 Exit Focus Mode' : '🎯 Enter Focus Mode', toggleFocusMode);
+        // Focus mode command
+        GM_registerMenuCommand('🎯 Toggle Focus Mode', toggleFocusMode);
 
-    // Status commands
-    GM_registerMenuCommand(`📏 Font: ${divFontSize}px | Margins: L${leftMargin}px R${rightMargin}px | Sidebar: ${sidebarHidden ? 'Hidden' : 'Visible'} | Focus: ${focusModeEnabled ? 'ON' : 'OFF'}`, () => {
-        showNotification(`Font: ${divFontSize}px | Margins: L${leftMargin}px R${rightMargin}px | Sidebar: ${sidebarHidden ? 'Hidden' : 'Visible'} | Focus: ${focusModeEnabled ? 'ON' : 'OFF'}`, 'font');
-    });
+        // Status commands
+        GM_registerMenuCommand(`📏 Font: ${divFontSize}px | Margins: L${leftMargin}px R${rightMargin}px | Sidebar: ${sidebarHidden ? 'Hidden' : 'Visible'} | Focus: ${focusModeEnabled ? 'ON' : 'OFF'}`, () => {
+            showNotification(`Font: ${divFontSize}px | Margins: L${leftMargin}px R${rightMargin}px | Sidebar: ${sidebarHidden ? 'Hidden' : 'Visible'} | Focus: ${focusModeEnabled ? 'ON' : 'OFF'}`, 'font');
+        });
+    }
 
     // ===========================================
     // INITIALIZATION
@@ -881,6 +883,7 @@
 
     function applyWithDelay() {
         applyAllSettings();
+        registerMenuCommands();
         setTimeout(applyAllSettings, 500);
         setTimeout(applyAllSettings, 1500);
     }
