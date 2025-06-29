@@ -270,6 +270,84 @@
     }
 
     // ===========================================
+    // FOCUS MODE MODULE
+    // ===========================================
+    const FOCUS_STORAGE_KEY = 'westlawFocusMode';
+
+    const FOCUS_SELECTORS = [
+        '#co_headerWrapper',
+        '#co_footerContainer',
+        '#co_docHeaderContainer'
+    ];
+
+    let focusModeEnabled = GM_getValue(`${FOCUS_STORAGE_KEY}_${currentDomain}`, false);
+    let focusStyleElement = null;
+
+    function updateFocusMode() {
+        if (focusStyleElement) {
+            focusStyleElement.remove();
+        }
+
+        focusStyleElement = document.createElement('style');
+        focusStyleElement.id = 'westlaw-focus-mode';
+
+        if (focusModeEnabled) {
+            const hideRules = FOCUS_SELECTORS.map(selector => `
+                ${selector} {
+                    display: none !important;
+                    visibility: hidden !important;
+                    height: 0 !important;
+                    max-height: 0 !important;
+                    overflow: hidden !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                }
+            `).join('\n');
+
+            focusStyleElement.textContent = `
+                ${hideRules}
+
+                /* Adjust main content to fill the space */
+                .co_mainContent,
+                .co_contentWrapper,
+                .co_documentContainer {
+                    margin-top: 0 !important;
+                    padding-top: 10px !important;
+                }
+
+                /* Ensure navigation buttons are still accessible even if hidden */
+                #co_documentFooterSearchTermNavigationNext,
+                #co_documentFooterSearchTermNavigationPrevious {
+                    position: fixed !important;
+                    top: -9999px !important;
+                    left: -9999px !important;
+                    opacity: 0 !important;
+                    pointer-events: auto !important;
+                    z-index: -1 !important;
+                }
+            `;
+        } else {
+            const showRules = FOCUS_SELECTORS.map(selector => `
+                ${selector} {
+                    display: block !important;
+                    visibility: visible !important;
+                }
+            `).join('\n');
+
+            focusStyleElement.textContent = showRules;
+        }
+
+        (document.head || document.documentElement).appendChild(focusStyleElement);
+        GM_setValue(`${FOCUS_STORAGE_KEY}_${currentDomain}`, focusModeEnabled);
+        showNotification(focusModeEnabled ? 'Focus mode ON' : 'Focus mode OFF', 'focus');
+    }
+
+    function toggleFocusMode() {
+        focusModeEnabled = !focusModeEnabled;
+        updateFocusMode();
+    }
+
+    // ===========================================
     // NAVIGATION SHORTCUTS MODULE
     // ===========================================
     function switchToNotesFile() {
@@ -690,6 +768,12 @@
                 e.preventDefault();
             }
 
+            // Focus mode toggle (F3)
+            if (e.key === 'F3' && !e.ctrlKey && !e.altKey && !e.shiftKey) {
+                toggleFocusMode();
+                e.preventDefault();
+            }
+
             // Navigation shortcuts
             if ((e.key === 'n' || e.key === 'ArrowRight') && !e.ctrlKey && !e.altKey && !e.shiftKey) {
                 const button = document.getElementById('co_documentFooterSearchTermNavigationNext');
@@ -777,9 +861,12 @@
     // Sidebar command
     GM_registerMenuCommand(sidebarHidden ? '👁️ Show Sidebar' : '🙈 Hide Sidebar', toggleSidebar);
 
+    // Focus mode command
+    GM_registerMenuCommand(focusModeEnabled ? '🎯 Exit Focus Mode' : '🎯 Enter Focus Mode', toggleFocusMode);
+
     // Status commands
-    GM_registerMenuCommand(`📏 Font: ${divFontSize}px | Margins: L${leftMargin}px R${rightMargin}px | Sidebar: ${sidebarHidden ? 'Hidden' : 'Visible'}`, () => {
-        showNotification(`Font: ${divFontSize}px | Margins: L${leftMargin}px R${rightMargin}px | Sidebar: ${sidebarHidden ? 'Hidden' : 'Visible'}`, 'font');
+    GM_registerMenuCommand(`📏 Font: ${divFontSize}px | Margins: L${leftMargin}px R${rightMargin}px | Sidebar: ${sidebarHidden ? 'Hidden' : 'Visible'} | Focus: ${focusModeEnabled ? 'ON' : 'OFF'}`, () => {
+        showNotification(`Font: ${divFontSize}px | Margins: L${leftMargin}px R${rightMargin}px | Sidebar: ${sidebarHidden ? 'Hidden' : 'Visible'} | Focus: ${focusModeEnabled ? 'ON' : 'OFF'}`, 'font');
     });
 
     // ===========================================
@@ -789,6 +876,7 @@
         updateDivFontSize();
         updateMargins();
         updateSidebarVisibility();
+        updateFocusMode();
     }
 
     function applyWithDelay() {
@@ -849,6 +937,6 @@
         });
     }
 
-    console.log('Westlaw Combined Enhancements loaded. Use Alt+Plus/Minus (font), Shift+Arrows (margins), F2 (sidebar), n/arrows (nav), Enter (copy).');
+    console.log('Westlaw Combined Enhancements loaded. Use Alt+Plus/Minus (font), Shift+Arrows (margins), F2 (sidebar), F3 (focus), n/arrows (nav), Enter (copy).');
 
 })();
