@@ -644,13 +644,17 @@
         const positions = {
             font: { top: '20px', zIndex: 10001 },
             margin: { top: '80px', zIndex: 10003 },
-            sidebar: { top: '140px', zIndex: 10002 }
+            sidebar: { top: '140px', zIndex: 10002 },
+            focus: { top: '200px', zIndex: 10004 },
+            navigation: { top: '260px', zIndex: 10005 }
         };
 
         const colors = {
             font: { bg: '#1a365d', border: '#2c5282' },
             margin: { bg: '#2d3748', border: '#4a5568' },
-            sidebar: { bg: sidebarHidden ? '#2d3748' : '#2b6cb0', border: sidebarHidden ? '#4a5568' : '#3182ce' }
+            sidebar: { bg: sidebarHidden ? '#2d3748' : '#2b6cb0', border: sidebarHidden ? '#4a5568' : '#3182ce' },
+            focus: { bg: '#553c9a', border: '#7c3aed' },
+            navigation: { bg: '#047857', border: '#059669' }
         };
 
         const notification = document.createElement('div');
@@ -685,130 +689,46 @@
     }
 
     // ===========================================
-    // KEYBOARD SHORTCUTS
+    // NAVIGATION HELPER FUNCTIONS (Menu-only)
     // ===========================================
-    document.addEventListener('keydown', function(e) {
-        if (document.activeElement.tagName !== 'INPUT' &&
-            document.activeElement.tagName !== 'TEXTAREA' &&
-            !document.activeElement.isContentEditable) {
-
-            // Font size shortcuts (Alt + Plus/Minus/0)
-            if ((e.key === '+' || e.key === '=') && e.altKey && !e.ctrlKey && !e.shiftKey) {
-                divFontSize = Math.min(divFontSize + 1, 36);
-                updateDivFontSize();
-                e.preventDefault();
-            }
-
-            if (e.key === '-' && e.altKey && !e.ctrlKey && !e.shiftKey) {
-                divFontSize = Math.max(divFontSize - 1, 10);
-                updateDivFontSize();
-                e.preventDefault();
-            }
-
-            if (e.key === '0' && e.altKey && !e.ctrlKey && !e.shiftKey) {
-                divFontSize = DEFAULT_FONT_SIZE;
-                updateDivFontSize();
-                e.preventDefault();
-            }
-
-            // Margin shortcuts (Shift + Arrow keys)
-            if (e.key === 'ArrowLeft' && e.shiftKey && !e.ctrlKey && !e.altKey) {
-                leftMargin = Math.min(leftMargin + ADJUSTMENT_STEP, 300);
-                updateMargins();
-                e.preventDefault();
-            }
-
-            if (e.key === 'ArrowRight' && e.shiftKey && !e.ctrlKey && !e.altKey) {
-                leftMargin = Math.max(leftMargin - ADJUSTMENT_STEP, 0);
-                updateMargins();
-                e.preventDefault();
-            }
-
-            if (e.key === 'ArrowUp' && e.shiftKey && !e.ctrlKey && !e.altKey) {
-                rightMargin = Math.min(rightMargin + ADJUSTMENT_STEP, 300);
-                updateMargins();
-                e.preventDefault();
-            }
-
-            if (e.key === 'ArrowDown' && e.shiftKey && !e.ctrlKey && !e.altKey) {
-                rightMargin = Math.max(rightMargin - ADJUSTMENT_STEP, 0);
-                updateMargins();
-                e.preventDefault();
-            }
-
-            if ((e.key === '+' || e.key === '=') && e.shiftKey && !e.ctrlKey && !e.altKey) {
-                leftMargin = Math.min(leftMargin + ADJUSTMENT_STEP, 300);
-                rightMargin = Math.min(rightMargin + ADJUSTMENT_STEP, 300);
-                updateMargins();
-                e.preventDefault();
-            }
-
-            if (e.key === '-' && e.shiftKey && !e.ctrlKey && !e.altKey) {
-                leftMargin = Math.max(leftMargin - ADJUSTMENT_STEP, 0);
-                rightMargin = Math.max(rightMargin - ADJUSTMENT_STEP, 0);
-                updateMargins();
-                e.preventDefault();
-            }
-
-            if (e.key === 'S' && e.shiftKey && !e.ctrlKey && !e.altKey) {
-                setSymmetricalMargins();
-                e.preventDefault();
-            }
-
-            if (e.key === 'R' && e.shiftKey && !e.ctrlKey && !e.altKey) {
-                leftMargin = DEFAULT_LEFT_MARGIN;
-                rightMargin = DEFAULT_RIGHT_MARGIN;
-                updateMargins();
-                e.preventDefault();
-            }
-
-            // Sidebar toggle (F2)
-            if (e.key === 'F2' && !e.ctrlKey && !e.altKey && !e.shiftKey) {
-                toggleSidebar();
-                e.preventDefault();
-            }
-
-            // Focus mode toggle (F3)
-            if (e.key === 'F3' && !e.ctrlKey && !e.altKey && !e.shiftKey) {
-                toggleFocusMode();
-                e.preventDefault();
-            }
-
-            // Navigation shortcuts
-            if ((e.key === 'n' || e.key === 'ArrowRight') && !e.ctrlKey && !e.altKey && !e.shiftKey) {
-                const button = document.getElementById('co_documentFooterSearchTermNavigationNext');
-                if (button && button.getAttribute('aria-disabled') !== 'true') {
-                    button.click();
-                    e.preventDefault();
-                }
-            }
-
-            if (e.key === 'ArrowLeft' && !e.ctrlKey && !e.altKey && !e.shiftKey) {
-                const button = document.getElementById('co_documentFooterSearchTermNavigationPrevious');
-                if (button && button.getAttribute('aria-disabled') !== 'true') {
-                    button.click();
-                    e.preventDefault();
-                }
-            }
-
-            if (e.key === 'ArrowUp' && !e.ctrlKey && !e.altKey && !e.shiftKey) {
-                window.scrollTo(0, 0);
-                e.preventDefault();
-            }
-
-            if (e.key === 'Enter' && !e.ctrlKey && !e.altKey && !e.shiftKey) {
-                const button = document.querySelector('button.co_copyWithRefLabel');
-                if (button) {
-                    button.click();
-                    e.preventDefault();
-
-                    setTimeout(() => {
-                        switchToNotesFile();
-                    }, 500);
-                }
-            }
+    function navigateNext() {
+        const button = document.getElementById('co_documentFooterSearchTermNavigationNext');
+        if (button && button.getAttribute('aria-disabled') !== 'true') {
+            button.click();
+            showNotification('Next search term', 'navigation');
+        } else {
+            showNotification('No next search term available', 'navigation');
         }
-    });
+    }
+
+    function navigatePrevious() {
+        const button = document.getElementById('co_documentFooterSearchTermNavigationPrevious');
+        if (button && button.getAttribute('aria-disabled') !== 'true') {
+            button.click();
+            showNotification('Previous search term', 'navigation');
+        } else {
+            showNotification('No previous search term available', 'navigation');
+        }
+    }
+
+    function scrollToTop() {
+        window.scrollTo(0, 0);
+        showNotification('Scrolled to top', 'navigation');
+    }
+
+    function copyAndSwitchToNotes() {
+        const button = document.querySelector('button.co_copyWithRefLabel');
+        if (button) {
+            button.click();
+            showNotification('Copied content, switching to notes...', 'navigation');
+            
+            setTimeout(() => {
+                switchToNotesFile();
+            }, 500);
+        } else {
+            showNotification('Copy button not found', 'navigation');
+        }
+    }
 
     // ===========================================
     // MENU COMMANDS REGISTRATION
@@ -864,6 +784,12 @@
 
         // Focus mode command
         GM_registerMenuCommand('🎯 Toggle Focus Mode', toggleFocusMode);
+
+        // Navigation commands
+        GM_registerMenuCommand('➡️ Next Search Term', navigateNext);
+        GM_registerMenuCommand('⬅️ Previous Search Term', navigatePrevious);
+        GM_registerMenuCommand('⬆️ Scroll to Top', scrollToTop);
+        GM_registerMenuCommand('📋 Copy & Switch to Notes', copyAndSwitchToNotes);
 
         // Status commands
         GM_registerMenuCommand(`📏 Font: ${divFontSize}px | Margins: L${leftMargin}px R${rightMargin}px | Sidebar: ${sidebarHidden ? 'Hidden' : 'Visible'} | Focus: ${focusModeEnabled ? 'ON' : 'OFF'}`, () => {
@@ -940,6 +866,6 @@
         });
     }
 
-    console.log('Westlaw Combined Enhancements loaded. Use Alt+Plus/Minus (font), Shift+Arrows (margins), F2 (sidebar), F3 (focus), n/arrows (nav), Enter (copy).');
+    console.log('Westlaw Combined Enhancements loaded. All controls available via userscript menu (no keyboard shortcuts to avoid conflicts).');
 
 })();
