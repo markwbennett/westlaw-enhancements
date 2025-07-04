@@ -5,7 +5,7 @@
 // @grant       GM_setValue
 // @grant       GM_getValue
 // @grant       GM_registerMenuCommand
-// @version     1.1
+// @version     1.3
 // @author      -
 // @description Combined Westlaw enhancements: font size, margins, navigation shortcuts, and sidebar toggle
 // ==/UserScript==
@@ -14,7 +14,7 @@
     'use strict';
     
     // Dynamic version info
-    const SCRIPT_VERSION = '1.1';
+    const SCRIPT_VERSION = '1.3';
     const BUILD_TIME = new Date().toISOString();
 
     // ===========================================
@@ -163,6 +163,18 @@
         const averageMargin = Math.round((leftMargin + rightMargin) / 2);
         leftMargin = averageMargin;
         rightMargin = averageMargin;
+        updateMargins();
+    }
+
+    function moveLeft() {
+        leftMargin = Math.max(leftMargin - ADJUSTMENT_STEP, 0);
+        rightMargin = Math.min(rightMargin + ADJUSTMENT_STEP, 300);
+        updateMargins();
+    }
+
+    function moveRight() {
+        leftMargin = Math.min(leftMargin + ADJUSTMENT_STEP, 300);
+        rightMargin = Math.max(rightMargin - ADJUSTMENT_STEP, 0);
         updateMargins();
     }
 
@@ -843,6 +855,10 @@
             updateMargins();
         });
 
+        GM_registerMenuCommand('⬅️ Move Left', moveLeft);
+
+        GM_registerMenuCommand('➡️ Move Right', moveRight);
+
         GM_registerMenuCommand('🔧 Reset Margins', () => {
             leftMargin = DEFAULT_LEFT_MARGIN;
             rightMargin = DEFAULT_RIGHT_MARGIN;
@@ -936,6 +952,6 @@
         });
     }
 
-    console.log(`Westlaw Combined Enhancements v${SCRIPT_VERSION} loaded at ${new Date().toLocaleTimeString()} (Built: ${BUILD_TIME}). Navigation: N/Right (next), Left (prev), Up (top), Enter (copy). Other controls via menu.`);
+    console.log(`Westlaw Combined Enhancements v${SCRIPT_VERSION} loaded at ${new Date().toLocaleTimeString()} (Built: ${BUILD_TIME}). Navigation keys: N/Right (next), Left (prev), Up (top), Enter (copy). All other controls via menu.`);
 
 })();
