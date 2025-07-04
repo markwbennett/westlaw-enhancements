@@ -2,7 +2,7 @@
     'use strict';
     
     // Dynamic version info
-    const SCRIPT_VERSION = '5.3';
+    const SCRIPT_VERSION = '5.5';
     const BUILD_TIME = new Date().toISOString();
     
     // Page detection functions
@@ -461,62 +461,27 @@
             
             // Use display: none to completely remove elements from layout
             const focusRules = `
-                /* Hide layout elements completely */
+                /* Hide header elements and their containers */
                 #co_headerWrapper,
                 #co_headerContainer,
-                #co_docHeader,
                 #co_docHeaderContainer,
-                #co_readingModeKC,
-                #co_footerContainer,
-                #co_rightColumn,
-                #co_leftColumn,
-                nav,
+                #co_docHeader,
                 header,
-                footer,
-                aside {
+                .co_header,
+                [class*="header"],
+                [id*="header"] {
                     display: none !important;
+                    height: 0 !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
                 }
                 
-                /* Hide everything else by default */
-                body > *:not(#co_pageContainer):not(script):not(style):not(link):not(meta):not(#westlaw-notification) {
-                    display: none !important;
-                }
-                
-                /* Show only essential page structure and document */
+                /* Remove any top spacing from main containers */
                 #co_pageContainer,
                 #co_mainContainer,
-                .co_scrollWrapper,
-                #coid_website_documentWidgetDiv,
-                #co_document,
-                #co_document *,
-                script,
-                style,
-                link,
-                meta,
-                #westlaw-notification {
-                    display: block !important;
-                    visibility: visible !important;
-                }
-                
-                /* Reset body styling */
-                body {
-                    padding: 0 !important;
-                    margin: 0 !important;
-                    background: white !important;
-                }
-                
-                /* Make document take full width */
-                #co_pageContainer,
-                #co_mainContainer {
-                    width: 100% !important;
-                    max-width: none !important;
-                    margin: 0 !important;
-                    padding: 0 !important;
-                }
-                
-                .co_scrollWrapper {
-                    margin: 0 !important;
-                    padding: 20px !important;
+                #co_contentColumn {
+                    margin-top: 0 !important;
+                    padding-top: 0 !important;
                 }
                 
                 /* Ensure notification is visible */
