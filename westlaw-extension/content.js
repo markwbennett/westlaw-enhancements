@@ -465,6 +465,7 @@
                 #co_headerWrapper,
                 #co_headerContainer,
                 #co_docHeader,
+                #co_docHeaderContainer,
                 #co_readingModeKC,
                 #co_footerContainer,
                 #co_rightColumn,
