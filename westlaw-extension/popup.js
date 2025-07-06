@@ -4,7 +4,13 @@ document.addEventListener('DOMContentLoaded', function() {
     function sendMessage(action) {
         chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
             if (tabs[0] && tabs[0].url.includes('westlaw.com')) {
-                chrome.tabs.sendMessage(tabs[0].id, {action: action});
+                chrome.tabs.sendMessage(tabs[0].id, {action: action}, function(response) {
+                    if (chrome.runtime.lastError) {
+                        console.log('Content script not ready:', chrome.runtime.lastError.message);
+                        // Optionally show user feedback
+                        document.getElementById('status').textContent = 'Content script loading...';
+                    }
+                });
             }
         });
     }
@@ -33,6 +39,11 @@ document.addEventListener('DOMContentLoaded', function() {
         chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
             if (tabs[0] && tabs[0].url.includes('westlaw.com')) {
                 chrome.tabs.sendMessage(tabs[0].id, {action: 'getStatus'}, function(response) {
+                    if (chrome.runtime.lastError) {
+                        console.log('Content script not ready:', chrome.runtime.lastError.message);
+                        document.getElementById('status').textContent = 'Content script loading...';
+                        return;
+                    }
                     if (response) {
                         // Update killswitch button
                         const killswitchBtn = document.getElementById('toggleKillswitch');
@@ -64,12 +75,23 @@ document.addEventListener('DOMContentLoaded', function() {
                             focusBtn.textContent = '🎯 Focus Mode: OFF';
                         }
                         
+                        // Update keep-alive button
+                        const keepAliveBtn = document.getElementById('toggleKeepAlive');
+                        if (response.keepAliveEnabled) {
+                            keepAliveBtn.classList.add('active');
+                            keepAliveBtn.textContent = '🔄 Keep Session Alive: ON';
+                        } else {
+                            keepAliveBtn.classList.remove('active');
+                            keepAliveBtn.textContent = '🔄 Keep Session Alive: OFF';
+                        }
+                        
                         document.getElementById('status').textContent = 
                             `${response.killswitchEnabled ? 'DISABLED | ' : ''}` +
                             `Font: ${response.fontSize}px | Line: ${response.lineHeight} | ` +
                             `Margins: L${response.leftMargin}px R${response.rightMargin}px | ` +
                             `Sidebar: ${response.sidebarHidden ? 'Hidden' : 'Visible'} | ` +
-                            `Focus: ${response.focusModeEnabled ? 'ON' : 'OFF'}`;
+                            `Focus: ${response.focusModeEnabled ? 'ON' : 'OFF'} | ` +
+                            `Keep-Alive: ${response.keepAliveEnabled ? 'ON' : 'OFF'}`;
                         
                         document.getElementById('version').textContent = `v${response.version}`;
                     }
@@ -147,6 +169,11 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(updateStatus, 100);
     });
 
+    document.getElementById('toggleKeepAlive').addEventListener('click', function() {
+        sendMessage('toggleKeepAlive');
+        setTimeout(updateStatus, 100);
+    });
+
     // Navigation controls
     document.getElementById('navigateNext').addEventListener('click', function() {
         sendMessage('navigateNext');
@@ -176,6 +203,15 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('toggleKillswitch').addEventListener('click', function() {
         sendMessage('toggleKillswitch');
         setTimeout(updateStatus, 100);
+    });
+
+    // Reload extension control
+    document.getElementById('reloadExtension').addEventListener('click', function() {
+        // Send reload message and close popup after a brief delay
+        chrome.runtime.sendMessage({action: 'reloadExtension'});
+        setTimeout(function() {
+            window.close();
+        }, 100);
     });
 
     // Initial page check

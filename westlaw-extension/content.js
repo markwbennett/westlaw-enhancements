@@ -2,7 +2,7 @@
     'use strict';
     
     // Dynamic version info
-    const SCRIPT_VERSION = '5.5';
+    const SCRIPT_VERSION = '5.5.3';
     const BUILD_TIME = new Date().toISOString();
     
     // Page detection functions
@@ -99,6 +99,12 @@
         if (focusStyleElement) {
             focusStyleElement.remove();
             focusStyleElement = null;
+        }
+
+        // Stop keep-alive
+        if (keepAliveInterval) {
+            clearInterval(keepAliveInterval);
+            keepAliveInterval = null;
         }
     }
 
@@ -521,6 +527,107 @@
     }
 
     // ===========================================
+    // KEEP ALIVE MODULE
+    // ===========================================
+    const KEEP_ALIVE_STORAGE_KEY = 'westlawKeepAlive';
+    const KEEP_ALIVE_MASTER_KEY = 'westlawKeepAliveMaster';
+    let keepAliveEnabled = false;
+    let keepAliveInterval = null;
+    let isKeepAliveMaster = false;
+    const KEEP_ALIVE_INTERVAL = 5 * 60 * 1000; // 5 minutes
+    const MASTER_HEARTBEAT_INTERVAL = 30 * 1000; // 30 seconds
+    const tabId = Math.random().toString(36).substr(2, 9); // Unique tab identifier
+
+    async function initializeKeepAliveSettings() {
+        keepAliveEnabled = await getValue(`${KEEP_ALIVE_STORAGE_KEY}_${currentDomain}`, false);
+        await checkKeepAliveMaster();
+    }
+
+    async function checkKeepAliveMaster() {
+        const masterInfo = await getValue(KEEP_ALIVE_MASTER_KEY, null);
+        const now = Date.now();
+        
+        // If no master exists or master is stale (no heartbeat for 60 seconds)
+        if (!masterInfo || (now - masterInfo.lastHeartbeat) > 60000) {
+            // Become the master
+            isKeepAliveMaster = true;
+            await setValue(KEEP_ALIVE_MASTER_KEY, {
+                tabId: tabId,
+                lastHeartbeat: now
+            });
+            console.log('Became keep-alive master tab:', tabId);
+        } else if (masterInfo.tabId === tabId) {
+            // We are already the master
+            isKeepAliveMaster = true;
+        } else {
+            // Another tab is the master
+            isKeepAliveMaster = false;
+            console.log('Another tab is keep-alive master:', masterInfo.tabId);
+        }
+    }
+
+    async function updateMasterHeartbeat() {
+        if (isKeepAliveMaster) {
+            await setValue(KEEP_ALIVE_MASTER_KEY, {
+                tabId: tabId,
+                lastHeartbeat: Date.now()
+            });
+        }
+    }
+
+    function sendKeepAlivePing() {
+        console.log('Sending Westlaw keep-alive ping...');
+        
+        // HEAD request to current page
+        fetch(window.location.href, {
+            method: 'HEAD',
+            credentials: 'include'
+        }).catch(() => {
+            // Fallback: simulate minimal user activity
+            document.dispatchEvent(new Event('mousemove'));
+        });
+    }
+
+    function updateKeepAlive() {
+        if (killswitchEnabled) {
+            console.log('Keep-alive blocked by killswitch');
+            return;
+        }
+        
+        if (keepAliveInterval) {
+            clearInterval(keepAliveInterval);
+            keepAliveInterval = null;
+        }
+
+        if (keepAliveEnabled && isKeepAliveMaster) {
+            keepAliveInterval = setInterval(sendKeepAlivePing, KEEP_ALIVE_INTERVAL);
+            console.log('Keep-alive started - pinging every 5 minutes (master tab)');
+        } else if (keepAliveEnabled && !isKeepAliveMaster) {
+            console.log('Keep-alive enabled but another tab is master');
+        } else {
+            console.log('Keep-alive stopped');
+        }
+
+        setValue(`${KEEP_ALIVE_STORAGE_KEY}_${currentDomain}`, keepAliveEnabled);
+        
+        let status = keepAliveEnabled ? 'ON' : 'OFF';
+        if (keepAliveEnabled && !isKeepAliveMaster) {
+            status += ' (delegated to other tab)';
+        }
+        showNotification(`Keep Session Alive: ${status}`, 'keepalive');
+    }
+
+    async function toggleKeepAlive() {
+        console.log('toggleKeepAlive called, current state:', keepAliveEnabled);
+        keepAliveEnabled = !keepAliveEnabled;
+        console.log('toggleKeepAlive new state:', keepAliveEnabled);
+        
+        // Re-check master status when toggling
+        await checkKeepAliveMaster();
+        updateKeepAlive();
+    }
+
+    // ===========================================
     // NOTIFICATION SYSTEM
     // ===========================================
     function showNotification(message, type) {
@@ -539,7 +646,8 @@
             sidebar: '#FF9800',
             focus: '#9C27B0',
             navigation: '#607D8B',
-            killswitch: '#F44336'
+            killswitch: '#F44336',
+            keepalive: '#17a2b8'
         };
 
         notification.style.cssText = `
@@ -782,6 +890,9 @@ Key Points:
             case 'toggleFocusMode':
                 toggleFocusMode();
                 break;
+            case 'toggleKeepAlive':
+                toggleKeepAlive();
+                break;
             case 'navigateNext':
                 navigateNext();
                 break;
@@ -811,6 +922,7 @@ Key Points:
                     rightMargin: rightMargin,
                     sidebarHidden: sidebarHidden,
                     focusModeEnabled: focusModeEnabled,
+                    keepAliveEnabled: keepAliveEnabled,
                     killswitchEnabled: killswitchEnabled,
                     version: SCRIPT_VERSION
                 });
@@ -826,6 +938,7 @@ Key Points:
         updateMargins();
         updateSidebarVisibility();
         updateFocusMode();
+        updateKeepAlive();
     }
 
     async function initialize() {
@@ -834,12 +947,33 @@ Key Points:
         await initializeMarginSettings();
         await initializeSidebarSettings();
         await initializeFocusSettings();
+        await initializeKeepAliveSettings();
         
         applyAllSettings();
         
         // Apply settings with delays for dynamic content
         setTimeout(applyAllSettings, 500);
         setTimeout(applyAllSettings, 1500);
+        
+        // Check for join session button
+        setTimeout(autoJoinSession, 1000);
+        setTimeout(autoJoinSession, 3000);
+        
+        // Start heartbeat for keep-alive master coordination
+        setInterval(updateMasterHeartbeat, MASTER_HEARTBEAT_INTERVAL);
+        setInterval(checkKeepAliveMaster, MASTER_HEARTBEAT_INTERVAL * 2);
+    }
+
+    // ===========================================
+    // AUTO-JOIN SESSION
+    // ===========================================
+    function autoJoinSession() {
+        const joinButton = document.querySelector('button[name="JoinSession"]');
+        if (joinButton && joinButton.textContent.trim() === 'Join session') {
+            console.log('Auto-clicking Join session button');
+            joinButton.click();
+            showNotification('Auto-joined session', 'navigation');
+        }
     }
 
     // Initialize when page loads
@@ -864,6 +998,11 @@ Key Points:
                             shouldUpdate = true;
                             break;
                         }
+                        
+                        // Also check for join session button
+                        if (node.querySelector && node.querySelector('button[name="JoinSession"]')) {
+                            setTimeout(autoJoinSession, 500);
+                        }
                     }
                 }
             }
@@ -881,6 +1020,19 @@ Key Points:
             subtree: true
         });
     }
+
+    // Handle page unload - clean up keep-alive interval and master status
+    window.addEventListener('beforeunload', async function() {
+        if (keepAliveInterval) {
+            clearInterval(keepAliveInterval);
+            keepAliveInterval = null;
+        }
+        
+        // Clear master status if we were the master
+        if (isKeepAliveMaster) {
+            await setValue(KEEP_ALIVE_MASTER_KEY, null);
+        }
+    });
 
     console.log(`Westlaw Combined Enhancements v${SCRIPT_VERSION} loaded at ${new Date().toLocaleTimeString()} (Built: ${BUILD_TIME}). Navigation keys: N/Right (next term), Left (prev term), Shift+Left/Right (prev/next doc), Up (top/prev doc), Enter (copy). Controls via extension popup.`);
 

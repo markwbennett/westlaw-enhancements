@@ -1,11 +1,12 @@
 {
   "manifest_version": 3,
   "name": "Westlaw Combined Enhancements",
-  "version": "5.5",
+  "version": "5.5.3",
   "description": "Enhanced Westlaw reading experience with customizable typography, layout controls, and navigation shortcuts",
   "permissions": [
     "storage",
-    "activeTab"
+    "activeTab",
+    "tabs"
   ],
   "host_permissions": [
     "*://*.westlaw.com/*"
@@ -20,6 +21,9 @@
   "action": {
     "default_popup": "popup.html",
     "default_title": "Westlaw Enhancements"
+  },
+  "background": {
+    "service_worker": "background.js"
   },
   "icons": {
     "16": "icons/icon16.png",
