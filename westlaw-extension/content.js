@@ -715,6 +715,21 @@
         }
     }
 
+    function scrollToBottom() {
+        // Check if already at bottom of page
+        if ((window.innerHeight + window.scrollY) >= document.body.scrollHeight) {
+            // Already at bottom, navigate to next document
+            navigateNextDocument();
+        } else {
+            // Not at bottom, scroll to bottom
+            window.scrollTo({
+                top: document.body.scrollHeight,
+                behavior: 'smooth'
+            });
+            showNotification('Scrolled to bottom', 'navigation');
+        }
+    }
+
     function navigatePreviousDocument() {
         const prevButton = document.getElementById('co_documentFooterResultsNavigationPrevious');
         if (prevButton && prevButton.getAttribute('aria-disabled') !== 'true') {
@@ -817,8 +832,14 @@ Key Points:
             }
 
             // Scroll to top / previous document
-            if (e.key === 'ArrowUp' && !e.ctrlKey && !e.altKey && !e.shiftKey) {
+            if (e.key === 'ArrowUp' && e.shiftKey && !e.ctrlKey && !e.altKey) {
                 scrollToTop();
+                e.preventDefault();
+            }
+
+            // Scroll to bottom
+            if (e.key === 'ArrowDown' && e.shiftKey && !e.ctrlKey && !e.altKey) {
+                scrollToBottom();
                 e.preventDefault();
             }
 
@@ -901,6 +922,9 @@ Key Points:
                 break;
             case 'scrollToTop':
                 scrollToTop();
+                break;
+            case 'scrollToBottom':
+                scrollToBottom();
                 break;
             case 'navigatePreviousDocument':
                 navigatePreviousDocument();
