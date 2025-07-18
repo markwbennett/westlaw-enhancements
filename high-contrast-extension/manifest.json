@@ -4,11 +4,16 @@
   "version": "1.0",
   "description": "Sets body text to the color with the greatest contrast from its background.",
   "permissions": [
-    "activeTab"
+    "activeTab",
+    "storage"
   ],
   "host_permissions": [
     "<all_urls>"
   ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "High Contrast Control"
+  },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
