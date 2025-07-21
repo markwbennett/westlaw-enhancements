@@ -29,6 +29,8 @@ function parseRGB(str) {
     return [parseInt(m[1],10), parseInt(m[2],10), parseInt(m[3],10)];
 }
 
+let currentFontWeight = 500;
+
 function runHighContrast() {
     const bg = getBodyBgColor();
     const text = getBodyTextColor();
@@ -46,14 +48,10 @@ function runHighContrast() {
     }
     document.body.style.backgroundColor = newBg;
     document.body.style.color = newText;
-    // Set font weight to 500 if less than 500 for all elements in body
+    // Set font weight to currentFontWeight for all elements in body
     function enforceFontWeight(node) {
         if (node.nodeType === 1) { // Element
-            const style = window.getComputedStyle(node);
-            const weight = parseInt(style.fontWeight, 10);
-            if (!isNaN(weight) && weight < 500) {
-                node.style.fontWeight = '500';
-            }
+            node.style.fontWeight = currentFontWeight;
             for (let i = 0; i < node.children.length; i++) {
                 enforceFontWeight(node.children[i]);
             }
@@ -78,8 +76,10 @@ function clearHighContrast() {
 
 function checkAndRun() {
     const siteKey = 'hc-disable-' + location.hostname;
+    const weightKey = 'hc-weight-' + location.hostname;
     if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-        chrome.storage.local.get([siteKey], function(result) {
+        chrome.storage.local.get([siteKey, weightKey], function(result) {
+            currentFontWeight = result[weightKey] || 500;
             if (result[siteKey]) {
                 clearHighContrast();
             } else {
@@ -101,6 +101,10 @@ if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage)
             } else {
                 runHighContrast();
             }
+        }
+        if (msg && msg.type === 'HC_WEIGHT') {
+            currentFontWeight = msg.weight || 500;
+            runHighContrast();
         }
     });
 } 
