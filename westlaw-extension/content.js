@@ -2,7 +2,7 @@
     'use strict';
     
     // Dynamic version info
-    const SCRIPT_VERSION = '5.6.0';
+    const SCRIPT_VERSION = '5.6.1';
     const BUILD_TIME = new Date().toISOString();
     
     // Page detection functions
@@ -771,8 +771,7 @@
                     readClipboardAndSave();
                 }, 500);
             } else {
-                // Try to extract quotation from page context
-                extractAndSaveQuotation();
+                showNotification('Copy button not found - please select text to save', 'navigation');
             }
         }
     }
@@ -881,9 +880,9 @@
                 showNotification('Clipboard is empty', 'navigation');
             }
         } catch (err) {
-            showNotification('Could not read clipboard - trying fallback', 'navigation');
-            // Fallback to extracting content from page
-            extractAndSaveQuotation();
+            console.error('Clipboard read failed:', err);
+            showNotification('Could not read clipboard. Please select text and try again.', 'navigation');
+            // Don't fallback to page extraction, just fail gracefully
         }
     }
 
@@ -944,11 +943,9 @@
                     setTimeout(() => {
                         readClipboardAndSave();
                     }, 500);
-                } else {
-                    // Fallback to original behavior
-                    copyAndSwitchToNotes();
+                    e.preventDefault();
                 }
-                e.preventDefault();
+                // If no copy button available, do nothing (don't prevent default)
             }
         }
     });

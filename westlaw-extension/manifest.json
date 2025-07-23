@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Westlaw Combined Enhancements",
-  "version": "5.6.0",
+  "version": "5.6.1",
   "description": "Enhanced Westlaw reading experience with customizable typography, layout controls, and navigation shortcuts",
   "permissions": [
     "storage",
