@@ -1,12 +1,18 @@
 {
   "manifest_version": 3,
   "name": "Westlaw Combined Enhancements",
-  "version": "5.5.3",
+  "version": "5.6.0",
   "description": "Enhanced Westlaw reading experience with customizable typography, layout controls, and navigation shortcuts",
   "permissions": [
     "storage",
     "activeTab",
     "tabs"
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["notes-viewer.html"],
+      "matches": ["<all_urls>"]
+    }
   ],
   "host_permissions": [
     "*://*.westlaw.com/*"

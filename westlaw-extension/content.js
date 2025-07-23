@@ -2,7 +2,7 @@
     'use strict';
     
     // Dynamic version info
-    const SCRIPT_VERSION = '5.5.3';
+    const SCRIPT_VERSION = '5.6.0';
     const BUILD_TIME = new Date().toISOString();
     
     // Page detection functions
@@ -751,54 +751,140 @@
     }
 
     function copyAndSwitchToNotes() {
-        const button = document.querySelector('button.co_copyWithRefLabel');
-        if (button) {
-            button.click();
-            showNotification('Copied with reference', 'navigation');
-
-            setTimeout(() => {
-                switchToNotesFile();
-            }, 500);
+        // Try to extract selected text first, fallback to copying with reference
+        const selectedText = window.getSelection().toString().trim();
+        
+        if (selectedText) {
+            // Use selected text as quotation
+            saveQuotationToNotes(selectedText);
         } else {
-            showNotification('Copy button not found', 'navigation');
+            // Try to click copy button and extract from clipboard or page
+            const button = document.querySelector('button.co_copyWithRefLabel');
+            const copyContainer = document.querySelector('.co_copyWithRefContainer');
+            
+            if (button && copyContainer && !copyContainer.hidden && copyContainer.style.display !== 'none') {
+                button.click();
+                showNotification('Copied with reference', 'navigation');
+                
+                // Automatically save clipboard content
+                setTimeout(() => {
+                    readClipboardAndSave();
+                }, 500);
+            } else {
+                // Try to extract quotation from page context
+                extractAndSaveQuotation();
+            }
         }
     }
 
-    function switchToNotesFile() {
-        createPersistentNotepad();
+    function extractAndSaveQuotation() {
+        // Try to find quotable content on the page
+        const documentContent = document.querySelector('.co_document, #co_document, .co_contentBlock');
+        if (documentContent) {
+            // Get first paragraph or meaningful content as fallback
+            const firstParagraph = documentContent.querySelector('p, .co_paragraph');
+            if (firstParagraph) {
+                const text = firstParagraph.textContent.trim();
+                if (text.length > 10) {
+                    saveQuotationToNotes(text.substring(0, 200) + (text.length > 200 ? '...' : ''));
+                    return;
+                }
+            }
+        }
+        
+        // Fallback: just open notes viewer
+        openNotesViewer();
+        showNotification('Please select text before saving quotations', 'navigation');
     }
 
-    function createPersistentNotepad() {
-        const notepadContent = `Westlaw Notes - ${new Date().toLocaleDateString()}
-========================================
-
-Research Notes:
---------------
-
-
-Citations:
-----------
-
-
-Key Points:
------------
-
-
-`;
+    function saveQuotationToNotes(quotation) {
+        const pageTitle = document.title;
+        const url = window.location.href;
         
-        const blob = new Blob([notepadContent], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
+        const noteEntry = {
+            quotation: quotation,
+            citation: '', // Don't add extra citation
+            pageTitle: pageTitle,
+            url: url,
+            timestamp: new Date().toISOString()
+        };
         
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `westlaw-notes-${new Date().toISOString().split('T')[0]}.txt`;
-        link.style.display = 'none';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        // Get existing notes and prepend new one
+        chrome.storage.local.get(['westlawNotes'], function(result) {
+            const notes = result.westlawNotes || [];
+            notes.unshift(noteEntry); // Add to beginning instead of end
+            
+            chrome.storage.local.set({ westlawNotes: notes }, function() {
+                showNotification('Quotation saved to notes', 'navigation');
+                openNotesViewer();
+            });
+        });
+    }
+
+    function extractCitation() {
+        // Try to find citation information on the page
+        const citationSelectors = [
+            '.co_citationData',
+            '.co_title',
+            '.co_documentTitle',
+            '#co_documentTitle',
+            '[data-testid="citation"]',
+            '.citation',
+            'h1'
+        ];
         
-        URL.revokeObjectURL(url);
-        showNotification('Notes file downloaded', 'navigation');
+        for (const selector of citationSelectors) {
+            const element = document.querySelector(selector);
+            if (element && element.textContent.trim()) {
+                return element.textContent.trim();
+            }
+        }
+        
+        // Fallback to document title
+        return document.title || 'Citation not found';
+    }
+
+    function openNotesViewer() {
+        chrome.runtime.sendMessage({action: 'openNotesViewer'});
+    }
+
+    async function readClipboardAndSave() {
+        try {
+            const text = await navigator.clipboard.readText();
+            if (text.trim()) {
+                // Use clipboard content directly - just save what Westlaw copied
+                const quotation = text.trim();
+                
+                if (quotation) {
+                    const noteEntry = {
+                        quotation: quotation,
+                        citation: '', // Don't extract citation, clipboard has everything needed
+                        pageTitle: document.title,
+                        url: window.location.href,
+                        timestamp: new Date().toISOString()
+                    };
+                    
+                    // Save to storage
+                    chrome.storage.local.get(['westlawNotes'], function(result) {
+                        const notes = result.westlawNotes || [];
+                        notes.unshift(noteEntry); // Add to beginning instead of end
+                        
+                        chrome.storage.local.set({ westlawNotes: notes }, function() {
+                            showNotification('Quotation saved to notes', 'navigation');
+                            openNotesViewer();
+                        });
+                    });
+                } else {
+                    showNotification('No valid content found in clipboard', 'navigation');
+                }
+            } else {
+                showNotification('Clipboard is empty', 'navigation');
+            }
+        } catch (err) {
+            showNotification('Could not read clipboard - trying fallback', 'navigation');
+            // Fallback to extracting content from page
+            extractAndSaveQuotation();
+        }
     }
 
     // ===========================================
@@ -845,7 +931,23 @@ Key Points:
 
             // Copy and notes
             if (e.key === 'Enter' && !e.ctrlKey && !e.altKey && !e.shiftKey) {
-                copyAndSwitchToNotes();
+                // Check if the Copy with Reference button is visible
+                const copyButton = document.querySelector('button.co_copyWithRefLabel');
+                const copyContainer = document.querySelector('.co_copyWithRefContainer');
+                
+                if (copyButton && copyContainer && !copyContainer.hidden && copyContainer.style.display !== 'none') {
+                    // Click the Copy with Reference button directly
+                    copyButton.click();
+                    showNotification('Copied with reference', 'navigation');
+                    
+                    // Wait a moment for clipboard, then automatically save content
+                    setTimeout(() => {
+                        readClipboardAndSave();
+                    }, 500);
+                } else {
+                    // Fallback to original behavior
+                    copyAndSwitchToNotes();
+                }
                 e.preventDefault();
             }
         }

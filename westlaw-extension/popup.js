@@ -199,6 +199,11 @@ document.addEventListener('DOMContentLoaded', function() {
         sendMessage('copyAndSwitchToNotes');
     });
 
+    document.getElementById('viewNotes').addEventListener('click', function() {
+        chrome.runtime.sendMessage({action: 'openNotesViewer'});
+        window.close();
+    });
+
     // Killswitch control
     document.getElementById('toggleKillswitch').addEventListener('click', function() {
         sendMessage('toggleKillswitch');

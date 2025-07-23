@@ -13,5 +13,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 chrome.runtime.reload();
             }
         });
+    } else if (request.action === 'openNotesViewer') {
+        // Open notes viewer in new tab
+        chrome.tabs.create({
+            url: chrome.runtime.getURL('notes-viewer.html')
+        });
     }
 }); 
