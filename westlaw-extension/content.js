@@ -849,33 +849,10 @@
 
     async function readClipboardAndSave() {
         try {
-            // Try to get raw clipboard data to preserve \p characters
-            let text;
-            try {
-                // Try modern clipboard API first
-                const clipboardItems = await navigator.clipboard.read();
-                for (const clipboardItem of clipboardItems) {
-                    for (const type of clipboardItem.types) {
-                        if (type === 'text/plain') {
-                            const blob = await clipboardItem.getType(type);
-                            text = await blob.text();
-                            break;
-                        }
-                    }
-                }
-            } catch (e) {
-                // Fallback to readText if read() fails
-                text = await navigator.clipboard.readText();
-            }
-            
-            if (text && text.trim()) {
-                // Try to restore \p characters that may have been converted to \n
-                // Look for patterns that indicate paragraph breaks vs line breaks
-                let quotation = text.trim();
-                
-                // If we see multiple consecutive newlines, they might have been \p originally
-                // Convert back for Word compatibility
-                quotation = quotation.replace(/\n\n+/g, '\p');
+            const text = await navigator.clipboard.readText();
+            if (text.trim()) {
+                // Use clipboard content exactly as-is
+                const quotation = text.trim();
                 
                 if (quotation) {
                     const noteEntry = {
