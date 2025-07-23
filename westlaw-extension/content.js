@@ -2,7 +2,7 @@
     'use strict';
     
     // Dynamic version info
-    const SCRIPT_VERSION = '5.6.1';
+    const SCRIPT_VERSION = '5.6.2';
     const BUILD_TIME = new Date().toISOString();
     
     // Page detection functions
@@ -863,14 +863,17 @@
                         timestamp: new Date().toISOString()
                     };
                     
-                    // Save to storage
+                    // Save to storage first, then open notes viewer after ensuring save is complete
                     chrome.storage.local.get(['westlawNotes'], function(result) {
                         const notes = result.westlawNotes || [];
                         notes.unshift(noteEntry); // Add to beginning instead of end
                         
                         chrome.storage.local.set({ westlawNotes: notes }, function() {
                             showNotification('Quotation saved to notes', 'navigation');
-                            openNotesViewer();
+                            // Small delay to ensure storage operation is fully committed
+                            setTimeout(() => {
+                                openNotesViewer();
+                            }, 100);
                         });
                     });
                 } else {

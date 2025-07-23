@@ -14,9 +14,23 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             }
         });
     } else if (request.action === 'openNotesViewer') {
-        // Open notes viewer in new tab
-        chrome.tabs.create({
-            url: chrome.runtime.getURL('notes-viewer.html')
+        // Check if notes viewer is already open
+        const notesUrl = chrome.runtime.getURL('notes-viewer.html');
+        
+        chrome.tabs.query({}, function(tabs) {
+            // Look for existing notes viewer tab
+            const existingTab = tabs.find(tab => tab.url === notesUrl);
+            
+            if (existingTab) {
+                // Switch to existing tab
+                chrome.tabs.update(existingTab.id, {active: true});
+                chrome.windows.update(existingTab.windowId, {focused: true});
+            } else {
+                // Open new tab
+                chrome.tabs.create({
+                    url: notesUrl
+                });
+            }
         });
     }
 }); 

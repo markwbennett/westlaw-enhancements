@@ -41,12 +41,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 const pageTitle = note.pageTitle || 'Unknown';
                 
                 html += `<div class="entry">
-                    <div class="entry-meta">
-                        Added: ${new Date(note.timestamp).toLocaleString()} | 
-                        Page: <a href="${note.url}" target="_blank" title="${note.url}">${pageTitle}</a>
-                    </div>
-                    <div class="entry-quote">${note.quotation}</div>
-                </div>`;
+<div class="entry-meta">Added: ${new Date(note.timestamp).toLocaleString()} | Page: <a href="${note.url}" target="_blank" title="${note.url}">${pageTitle}</a></div>
+<div class="entry-quote">${note.quotation}</div>
+</div>
+<hr>`;
             });
             
             notesContent.innerHTML = html;
@@ -131,34 +129,13 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             const text = await navigator.clipboard.readText();
             if (text.trim()) {
-                // Try to parse the pasted content to extract quotation and citation
-                const lines = text.split('\n').filter(line => line.trim());
-                
-                let quotation = '';
-                let citation = '';
-                
-                // Simple heuristic: first line might be citation, rest is quotation
-                // Or if it's a long single line, treat it as quotation
-                if (lines.length === 1) {
-                    quotation = lines[0].trim();
-                    citation = 'From clipboard';
-                } else if (lines.length > 1) {
-                    // Look for typical citation patterns in first few lines
-                    const firstLine = lines[0].trim();
-                    if (firstLine.length < 200 && (firstLine.includes('v.') || firstLine.includes('§') || 
-                                                   firstLine.match(/\d{4}/))) {
-                        citation = firstLine;
-                        quotation = lines.slice(1).join(' ').trim();
-                    } else {
-                        quotation = text.trim();
-                        citation = 'From clipboard';
-                    }
-                }
+                // Use clipboard content directly without any parsing or modification
+                const quotation = text.trim();
                 
                 if (quotation) {
                     const noteEntry = {
                         quotation: quotation,
-                        citation: citation,
+                        citation: '',
                         pageTitle: 'Pasted from clipboard',
                         url: window.location.href,
                         timestamp: new Date().toISOString()
@@ -211,6 +188,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initial load
     loadNotes();
+    
+    // Also load after a short delay to catch any recent additions
+    setTimeout(loadNotes, 200);
     
     // Refresh every 30 seconds in case notes are added from other tabs
     setInterval(loadNotes, 30000);
