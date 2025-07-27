@@ -766,10 +766,8 @@
                 button.click();
                 showNotification('Copied with reference', 'navigation');
                 
-                // Automatically save clipboard content
-                setTimeout(() => {
-                    readClipboardAndSave();
-                }, 500);
+                // Use robust clipboard reading with retries
+                readClipboardWithRetries();
             } else {
                 showNotification('Copy button not found - please select text to save', 'navigation');
             }
@@ -847,47 +845,118 @@
         chrome.runtime.sendMessage({action: 'openNotesViewer'});
     }
 
-    async function readClipboardAndSave() {
-        try {
-            const text = await navigator.clipboard.readText();
-            if (text.trim()) {
-                // Use clipboard content exactly as-is
-                const quotation = text.trim();
-                
-                if (quotation) {
-                    const noteEntry = {
-                        quotation: quotation,
-                        citation: '', // Don't extract citation, clipboard has everything needed
-                        pageTitle: document.title,
-                        url: window.location.href,
-                        timestamp: new Date().toISOString()
-                    };
-                    
-                    // Save to storage first, then open notes viewer after ensuring save is complete
-                    chrome.storage.local.get(['westlawNotes'], function(result) {
-                        const notes = result.westlawNotes || [];
-                        notes.unshift(noteEntry); // Add to beginning instead of end
-                        
-                        chrome.storage.local.set({ westlawNotes: notes }, function() {
-                            showNotification('Quotation saved to notes', 'navigation');
-                            // Small delay to ensure storage operation is fully committed
-                            setTimeout(() => {
-                                openNotesViewer();
-                            }, 100);
-                        });
-                    });
-                } else {
-                    showNotification('No valid content found in clipboard', 'navigation');
-                }
-            } else {
-                showNotification('Clipboard is empty', 'navigation');
-            }
-        } catch (err) {
-            console.error('Clipboard read failed:', err);
-            showNotification('Could not read clipboard. Please select text and try again.', 'navigation');
-            // Don't fallback to page extraction, just fail gracefully
-        }
-    }
+         async function readClipboardWithRetries() {
+         const maxRetries = 3;
+         const initialDelay = 800; // Wait longer initially for copy operation
+         const retryDelay = 300; // Shorter retry intervals
+
+         // Wait initial delay for copy operation to complete
+         await new Promise(resolve => setTimeout(resolve, initialDelay));
+
+         for (let i = 0; i < maxRetries; i++) {
+             try {
+                 const text = await navigator.clipboard.readText();
+                 if (text && text.trim()) {
+                     // Use clipboard content exactly as-is
+                     const quotation = text.trim();
+                     
+                     if (quotation) {
+                         const noteEntry = {
+                             quotation: quotation,
+                             citation: '', // Don't extract citation, clipboard has everything needed
+                             pageTitle: document.title,
+                             url: window.location.href,
+                             timestamp: new Date().toISOString()
+                         };
+                         
+                         // Save to storage first, then open notes viewer after ensuring save is complete
+                         chrome.storage.local.get(['westlawNotes'], function(result) {
+                             const notes = result.westlawNotes || [];
+                             notes.unshift(noteEntry); // Add to beginning instead of end
+                             
+                             chrome.storage.local.set({ westlawNotes: notes }, function() {
+                                 showNotification('Quotation saved to notes', 'navigation');
+                                 // Small delay to ensure storage operation is fully committed
+                                 setTimeout(() => {
+                                     openNotesViewer();
+                                 }, 100);
+                             });
+                         });
+                         return; // Exit if successful
+                     }
+                 }
+                 
+                 // If we reach here, clipboard was empty or had no valid content
+                 if (i === maxRetries - 1) {
+                     showNotification('Clipboard is empty or contains no valid content', 'navigation');
+                 }
+             } catch (err) {
+                 console.error(`Clipboard read attempt ${i + 1} failed:`, err);
+                 
+                 if (err.name === 'NotAllowedError') {
+                     showNotification('Clipboard access denied. Please allow clipboard permissions.', 'navigation');
+                     return;
+                 } else if (i === maxRetries - 1) {
+                     // Only show error on final attempt
+                     showNotification(`Failed to read clipboard: ${err.message}`, 'navigation');
+                 }
+             }
+             
+             // Wait before retry (except on last iteration)
+             if (i < maxRetries - 1) {
+                 await new Promise(resolve => setTimeout(resolve, retryDelay));
+             }
+         }
+     }
+
+     async function readClipboardAndSave() {
+         try {
+             const text = await navigator.clipboard.readText();
+             if (text.trim()) {
+                 // Use clipboard content exactly as-is
+                 const quotation = text.trim();
+                 
+                 if (quotation) {
+                     const noteEntry = {
+                         quotation: quotation,
+                         citation: '', // Don't extract citation, clipboard has everything needed
+                         pageTitle: document.title,
+                         url: window.location.href,
+                         timestamp: new Date().toISOString()
+                     };
+                     
+                     // Save to storage first, then open notes viewer after ensuring save is complete
+                     chrome.storage.local.get(['westlawNotes'], function(result) {
+                         const notes = result.westlawNotes || [];
+                         notes.unshift(noteEntry); // Add to beginning instead of end
+                         
+                         chrome.storage.local.set({ westlawNotes: notes }, function() {
+                             showNotification('Quotation saved to notes', 'navigation');
+                             // Small delay to ensure storage operation is fully committed
+                             setTimeout(() => {
+                                 openNotesViewer();
+                             }, 100);
+                         });
+                     });
+                 } else {
+                     showNotification('No valid content found in clipboard', 'navigation');
+                 }
+             } else {
+                 showNotification('Clipboard is empty', 'navigation');
+             }
+         } catch (err) {
+             console.error('Clipboard read failed:', err);
+             console.error('Error details:', err.name, err.message);
+             
+             if (err.name === 'NotAllowedError') {
+                 showNotification('Clipboard access denied. Please allow clipboard permissions.', 'navigation');
+             } else if (err.name === 'NotFoundError') {
+                 showNotification('No text found in clipboard.', 'navigation');
+             } else {
+                 showNotification(`Could not read clipboard: ${err.message}`, 'navigation');
+             }
+         }
+     }
 
     // ===========================================
     // KEYBOARD SHORTCUTS
@@ -942,10 +1011,8 @@
                     copyButton.click();
                     showNotification('Copied with reference', 'navigation');
                     
-                    // Wait a moment for clipboard, then automatically save content
-                    setTimeout(() => {
-                        readClipboardAndSave();
-                    }, 500);
+                    // Use robust clipboard reading with retries
+                    readClipboardWithRetries();
                     e.preventDefault();
                 }
                 // If no copy button available, do nothing (don't prevent default)
